@@ -1,40 +1,27 @@
-name: Build & Upload to App Store
-on: [workflow_dispatch]
+name: Build
 
-concurrency:
-  group: ${{ github.ref }}
-  cancel-in-progress: true
+on: 
+  push:
+    branches: [main]
 
 jobs:
-  deploy:
-    name: Deploying to App Store
-    runs-on: macOS-13
+  build:  
+    runs-on: macos-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+        
+      - name: Install Xcode command line tools 
+        run: xcode-select --install
+        
+      - name: Build with Xcode
+        run: |
+          xcodebuild archive -project Code.xcodeproj -scheme Code -archivePath Code.xcarchive
+          xcodebuild -exportArchive -archivePath Code.xcarchive -exportPath . -exportOptionsPlist ExportOptions.plist
 
-      - name: Deploy production build to App Store via Fastlane
-        run: fastlane beta
-        env:
-          APP_STORE_CONNECT_TEAM_ID: "${{ secrets.APP_STORE_CONNECT_TEAM_ID }}"
-          DEVELOPER_APP_ID: "${{ secrets.DEVELOPER_APP_ID }}"
-          DEVELOPER_APP_IDENTIFIER: "${{ secrets.DEVELOPER_APP_IDENTIFIER }}"
-          DEVELOPER_APP_EXTENSION_IDENTIFIER: "${{ secrets.DEVELOPER_APP_EXTENSION_IDENTIFIER }}"
-          DEVELOPER_PORTAL_TEAM_ID: "${{ secrets.DEVELOPER_PORTAL_TEAM_ID }}"
-          FASTLANE_APPLE_ID: "${{ secrets.FASTLANE_APPLE_ID }}"
-          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: "${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}"
-          MATCH_PASSWORD: "${{ secrets.MATCH_PASSWORD }}"
-          GIT_AUTHORIZATION: "${{ secrets.GIT_AUTHORIZATION }}"
-          PROVISIONING_PROFILE_SPECIFIER: "${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}"
-          TEMP_KEYCHAIN_PASSWORD: "${{ secrets.TEMP_KEYCHAIN_PASSWORD }}"
-          TEMP_KEYCHAIN_USER: "${{ secrets.TEMP_KEYCHAIN_USER }}"
-          APPLE_KEY_ID: "${{ secrets.APPLE_KEY_ID }}"
-          APPLE_ISSUER_ID: "${{ secrets.APPLE_ISSUER_ID }}"
-          APPLE_KEY_CONTENT: "${{ secrets.APPLE_KEY_CONTENT }}"
-          JUDGE0_KEY: "${{ secrets.JUDGE0_KEY }}"
-          JUDGE0_ENDPOINT: "${{ secrets.JUDGE0_ENDPOINT }}"
-          DISTRIBUTE_EXTERNAL: "false"
-          XCODE_PATH: "/Applications/Xcode_14.3.1.app"
+      - name: Upload build artifact 
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: Code.ipa
