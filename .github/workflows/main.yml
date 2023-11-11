@@ -1,24 +1,27 @@
 name: Build
-on:
+
+on: 
   push:
     branches: [main]
 
-concurrency:
-  group: ${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  deploy:
-    name: Deploying to TestFlight
-    runs-on: macOS-13
+  build:  
+    runs-on: macos-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Upload Artifact
+        
+      - name: Install Xcode command line tools 
+        run: xcode-select --install
+        
+      - name: Build with Xcode
+        run: |
+          xcodebuild archive -project Code.xcodeproj -scheme Code -archivePath Code.xcarchive
+          xcodebuild -exportArchive -archivePath Code.xcarchive -exportPath . -exportOptionsPlist ExportOptions.plist
+
+      - name: Upload build artifact 
         uses: actions/upload-artifact@v3
         with:
-          name: ipa-build
+          name: build
           path: Code.ipa
